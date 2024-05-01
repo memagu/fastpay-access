@@ -1,0 +1,1 @@
+pyinstaller --onefile --clean --paths ".\venv\Lib\site-packages" --icon=NONE ".\src\fastpay_access.py"
