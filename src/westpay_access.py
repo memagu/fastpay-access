@@ -1,6 +1,9 @@
 from __future__ import annotations
+
+import json
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -86,18 +89,23 @@ class WestpayAccess(requests.Session):
 
         return b"Invalid username or password." not in response.content
 
-    def get_terminals(self) -> Terminals:
+    def get_terminals(self, _filter: str = "Active") -> Optional[Terminals]:
         params = {
-            "filter": "Active"
+            "filter": _filter
         }
         response = self.get(
             "https://access.westpay.se/Onboarding/GetMyTerminalidTerminals",
             params=params
         )
 
-        return tuple(map(Terminal.from_dict, response.json()))
+        try:
+            json_data = response.json()
+        except json.JSONDecodeError:
+            return
 
-    def get_transactions(self, customer_id: int, start: datetime, end: datetime, terminal_id: int = None) -> Transactions:
+        return tuple(map(Terminal.from_dict, json_data))
+
+    def get_transactions(self, customer_id: int, start: datetime, end: datetime, terminal_id: int = None) -> Optional[Transactions]:
         data = {
             "customerId": customer_id,
             "fromdate": start.strftime("%Y%m%d"),
@@ -112,4 +120,9 @@ class WestpayAccess(requests.Session):
             data
         )
 
-        return tuple(map(Transaction.from_dict, response.json()["Data"]))
+        try:
+            json_data = response.json()
+        except json.JSONDecodeError:
+            return
+
+        return tuple(map(Transaction.from_dict, json_data["Data"]))
